@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "pydref-serializers"
+version = "0.1.0"
+description = ""
+authors = ["Aryan Curiel <aryan.curiel@gmail.com>"]
+readme = "README.md"
+packages = [{include = "pydref_serializers"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+django = "^4.2.4"
+pydantic = "^2.1.1"
+
+
+[tool.poetry.group.dev.dependencies]
+coverage = "^7.2.7"
+pytest = "^7.4.0"
+black = "^23.7.0"
+ruff = "^0.0.284"
+isort = "^5.12.0"
+taskipy = "^1.12.0"
+pytest-mock = "^3.11.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+ignore-init-module-imports = true
+ignore = [
+    "E501",  # line too long, handled by black
+]
+
+[tool.ruff.per-file-ignores]
+# Ignore `F401` (import violations) in all `__init__.py` files.
+"__init__.py" = ["F401"]
+"conftest.py" = ["F401"]
+
+[tool.taskipy.tasks]
+format = "ruff check --fix . && black ."
+lint = "ruff check ."
+sort = "isort ."
+test = "python -m unittest discover -s tests/ -p 'test_*.py'"
+coverage = "coverage run -m unittest discover -s tests/ -p 'test_*.py' && coverage report"
+check = "task sort && task format && task test && task coverage"
