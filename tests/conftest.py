@@ -1,5 +1,1 @@
-from .fixtures import (
-    mocked_model,
-    empty_model,
-    model_with_fields,
-)
+from .fixtures import empty_model, mocked_model, model_with_fields

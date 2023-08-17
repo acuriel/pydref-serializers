@@ -1,5 +1,1 @@
-from .models import (
-    mocked_model,
-    empty_model,
-    model_with_fields,
-)
+from .models import empty_model, mocked_model, model_with_fields
