@@ -1,5 +1,5 @@
 import logging
-from typing import ClassVar, TypedDict
+from typing import ClassVar, Collection, TypedDict
 
 from django.db.models import Model as DjangoModel
 from django.forms.models import model_to_dict as django_model_to_dict
@@ -41,8 +41,12 @@ class ModelSerializerBuilder:
         *,
         fields_getter: _FieldGetter = default_get_fields,
         field_mapper: _FieldMapper = default_field_mapper,
+        include_fields: Collection[str] = None,
+        exclude_fields: Collection[str] = None,
     ) -> ModelSerializer:
-        django_fields = fields_getter(model)
+        django_fields = fields_getter(
+            model, include_fields=include_fields, exclude_fields=exclude_fields
+        )
         pydantic_fields = {field.name: field_mapper(field) for field in django_fields}
 
         new_serializer = create_model(

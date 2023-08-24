@@ -7,6 +7,6 @@ class TestFromModel:
     ):
         serializer_class = ModelSerializerBuilder.from_model_class(
             model=empty_model,
-            fields_getter=lambda model: [],
+            fields_getter=lambda model, *args, **kwargs: [],
         )
         assert issubclass(serializer_class, ModelSerializer)

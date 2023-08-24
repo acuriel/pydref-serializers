@@ -3,21 +3,23 @@ from typing import Any, Callable, Collection
 from django.db.models import Field as DjangoField
 from django.db.models import Model as DjangoModel
 
-_FieldGetter = Callable[[type[DjangoModel]], dict[type, Any]]
+_FieldGetter = Callable[
+    [type[DjangoModel], Collection[str] | None, Collection[str] | None], dict[type, Any]
+]
 
 
 def default_get_fields(
     model: type[DjangoModel],
     *,
-    include: Collection[str] = None,
-    exclude: Collection[str] = None
+    include_fields: Collection[str] = None,
+    exclude_fields: Collection[str] = None
 ) -> Collection[DjangoField]:
     all_fields = model._meta.fields
 
-    if include and exclude:
+    if include_fields and exclude_fields:
         raise ValueError("Cannot include and exclude fields at the same time")
-    if include:
-        return [field for field in all_fields if field.name in include]
-    if exclude:
-        return [field for field in all_fields if field.name not in exclude]
+    if include_fields:
+        return [field for field in all_fields if field.name in include_fields]
+    if exclude_fields:
+        return [field for field in all_fields if field.name not in exclude_fields]
     return all_fields

@@ -22,18 +22,20 @@ class TestDefaultGetFields:
         self, model_with_fields
     ):
         included = model_with_fields._meta.fields[0]
-        actual = default_get_fields(model_with_fields, include=[included.name])
+        actual = default_get_fields(model_with_fields, include_fields=[included.name])
         assert actual == [included]
 
     def test_get_fields__should_return_expected_fields_when_exclude_is_provided(
         self, model_with_fields
     ):
         excluded, *included = model_with_fields._meta.fields
-        actual = default_get_fields(model_with_fields, exclude=[excluded.name])
+        actual = default_get_fields(model_with_fields, exclude_fields=[excluded.name])
         assert actual == included
 
     def test_get_fields__should_raise_value_error_when_include_and_exclude_are_provided(
         self, model_with_fields
     ):
         with pytest.raises(ValueError):
-            default_get_fields(model_with_fields, include=["name"], exclude=["name"])
+            default_get_fields(
+                model_with_fields, include_fields=["name"], exclude_fields=["name"]
+            )
