@@ -15,13 +15,11 @@ jobs:
     executor: default
     steps:
       - checkout
-      - restore_cache:
-          key: pydref_serializers-{{ checksum "pydref_serializers/poetry.lock" }}-{{ checksum "pydref_serializers/pyproject.toml" }}
       - python/install-packages:
           pkg-manager: poetry
           args: --with dev
       - save_cache:
-          key: pydref_serializers-{{ checksum "pydref_serializers/poetry.lock" }}-{{ checksum "pydref_serializers/pyproject.toml" }}
+          key: pydref_serializers-{{ checksum "pydref_serializers/pyproject.toml" }}
           paths:
             - /tmp/caches/pydref_serializers.tar
       - save_cache:
