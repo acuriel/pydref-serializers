@@ -7,12 +7,8 @@ from django.db import models
 from pydantic.fields import FieldInfo
 
 from pydref_serializers.serializers.field_mappers import (
-    DJANGO_FIELD_MAP,
-    _get_base_type,
-    _get_enum_class,
-    _get_pydantic_field_type,
-    default_field_mapper,
-)
+    DJANGO_FIELD_MAP, _get_base_type, _get_enum_class,
+    _get_pydantic_field_type, default_field_mapper)
 
 
 class TestDefaultFieldMapper:

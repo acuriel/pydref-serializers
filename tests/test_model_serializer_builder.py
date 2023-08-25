@@ -1,4 +1,5 @@
-from pydref_serializers.serializers import ModelSerializer, ModelSerializerBuilder
+from pydref_serializers.serializers import (ModelSerializer,
+                                            ModelSerializerBuilder)
 
 
 class TestFromModel:
