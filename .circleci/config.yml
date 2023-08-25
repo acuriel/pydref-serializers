@@ -1,0 +1,86 @@
+version: 2.1
+
+executors:
+  default:
+    docker:
+      - image: cimg/python:3.11
+
+orbs:
+    # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/python
+  python: circleci/python@2.1.1
+
+
+commands:
+  poetry_install:
+    description: Install dependencies
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: poetry
+          args: --with dev
+
+# See: https://circleci.com/docs/configuration-reference/#jobs
+jobs:
+  setup:
+    executor: default
+    steps:
+      - poetry_install
+      - save_cache:
+          key: pydref_serializers-{{ checksum "poetry.lock" }}-{{ checksum "pyproject.toml" }}
+          paths:
+            - /tmp/caches/pydref_serializers.tar
+      - save_cache:
+          key: pydref_serializers-{{ .Revision }}
+          paths:
+            - /tmp/caches/pydref_serializers.tar
+  lint:
+    executor: default
+    steps:
+      - poetry_install
+      - run:
+          name: Run lint
+          command: |
+            poetry run task lint
+  test:
+    executor: default
+    steps:
+      - poetry_install
+      - run:
+          name: Run tests
+          command: |
+            poetry run task test
+  deploy-pypi:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: poetry
+      - run:
+          name: Deploy to PyPI
+          command: |
+            poetry config pypi-token.pypi $PYPI_TOKEN
+            poetry publish --build
+
+# Invoke jobs via workflows
+# See: https://circleci.com/docs/configuration-reference/#workflows
+workflows:
+  build_test_deploy: # This is the name of the workflow, feel free to change it to better match your workflow.
+    # Inside the workflow, you define the jobs you want to run.
+    jobs:
+      - setup
+      - lint:
+          requires:
+            - setup
+      - test:
+          requires:
+            - lint
+      - deploy-pypi:
+          requires:
+            - test
+          context: pypi_pydref_serializer
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /^\d+\.\d+\.\d+$/ # Only deploy tags that look like X.Y.Z
