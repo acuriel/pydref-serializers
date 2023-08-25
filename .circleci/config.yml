@@ -40,12 +40,11 @@ jobs:
       - run:
           name: Run lint
           command: |
-            poetry run ruff check .
+            poetry run task lint
   test:
     executor: default
     steps:
-      - restore_cache:
-          key: pydref_serializers-{{ .Revision }}
+      - poetry_install
       - run:
           name: Run tests
           command: |
