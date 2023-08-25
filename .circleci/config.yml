@@ -35,7 +35,7 @@ jobs:
       - run:
           name: Run lint
           command: |
-            poetry run task lint
+            poetry run ruff check .
   test:
     executor: default
     steps:
