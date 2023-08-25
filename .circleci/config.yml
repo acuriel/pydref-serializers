@@ -11,7 +11,7 @@ orbs:
 
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  install-dependencies:
+  setup:
     executor: default
     steps:
       - checkout
@@ -29,6 +29,7 @@ jobs:
   lint:
     executor: default
     steps:
+      - checkout
       - restore_cache:
           key: pydref_serializers-{{ .Revision }}
       - run:
@@ -63,10 +64,10 @@ workflows:
   build_test_deploy: # This is the name of the workflow, feel free to change it to better match your workflow.
     # Inside the workflow, you define the jobs you want to run.
     jobs:
-      - install-dependencies
+      - setup
       - lint:
           requires:
-            - install-dependencies
+            - setup
       - test:
           requires:
             - lint
