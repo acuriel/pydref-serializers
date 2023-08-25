@@ -19,7 +19,7 @@ jobs:
           pkg-manager: poetry
           args: --with dev
       - save_cache:
-          key: pydref_serializers-{{ checksum "pydref_serializers/pyproject.toml" }}
+          key: pydref_serializers-{{ checksum "poetry.lock" }}-{{ checksum "pyproject.toml" }}
           paths:
             - /tmp/caches/pydref_serializers.tar
       - save_cache:
