@@ -39,20 +39,24 @@ class ModelSerializerBuilder:
         cls,
         model: type[DjangoModel],
         *,
-        fields_getter: _FieldGetter = default_get_fields,
-        field_mapper: _FieldMapper = default_field_mapper,
         include_fields: Collection[str] = None,
         exclude_fields: Collection[str] = None,
+        fields_getter: _FieldGetter = default_get_fields,
+        field_mapper: _FieldMapper = default_field_mapper,
     ) -> ModelSerializer:
         django_fields = fields_getter(
             model, include_fields=include_fields, exclude_fields=exclude_fields
         )
         pydantic_fields = {field.name: field_mapper(field) for field in django_fields}
-
+        serializer_config = ConfigSerializerDict(
+            model=model,
+            include_fields=include_fields,
+            exclude_fields=exclude_fields,
+        )
         new_serializer = create_model(
             model.__name__ + "Serializer",
             __base__=ModelSerializer,
-            config=ConfigSerializerDict(model=model),
+            config=serializer_config,
             **pydantic_fields,
         )
         return new_serializer
