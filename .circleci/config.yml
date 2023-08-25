@@ -9,15 +9,22 @@ orbs:
     # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/python
   python: circleci/python@2.1.1
 
-# See: https://circleci.com/docs/configuration-reference/#jobs
-jobs:
-  setup:
-    executor: default
+
+commands:
+  poetry_install:
+    description: Install dependencies
     steps:
       - checkout
       - python/install-packages:
           pkg-manager: poetry
           args: --with dev
+
+# See: https://circleci.com/docs/configuration-reference/#jobs
+jobs:
+  setup:
+    executor: default
+    steps:
+      - poetry_install
       - save_cache:
           key: pydref_serializers-{{ checksum "poetry.lock" }}-{{ checksum "pyproject.toml" }}
           paths:
@@ -29,9 +36,7 @@ jobs:
   lint:
     executor: default
     steps:
-      - checkout
-      - restore_cache:
-          key: pydref_serializers-{{ .Revision }}
+      - poetry_install
       - run:
           name: Run lint
           command: |
