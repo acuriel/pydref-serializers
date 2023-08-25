@@ -78,6 +78,7 @@ workflows:
       - deploy-pypi:
           requires:
             - test
+          context: pypi_pydref_serializer
           filters:
             branches:
               only: master
