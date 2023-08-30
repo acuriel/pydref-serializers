@@ -6,7 +6,6 @@ from django.forms.models import model_to_dict as django_model_to_dict
 from pydantic import BaseModel
 from typing_extensions import Self
 
-
 logger = logging.getLogger(__name__)
 
 

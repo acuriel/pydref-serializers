@@ -1,2 +1,2 @@
-from .serializers import ModelSerializer
 from .builders import ModelSerializerBuilder
+from .serializers import ModelSerializer

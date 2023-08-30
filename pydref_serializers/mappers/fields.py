@@ -6,8 +6,7 @@ from typing import Annotated, Any, Callable, get_args, get_origin
 from uuid import UUID
 
 from django.db.models import Field as DjangoField
-from pydantic import (AnyUrl, EmailStr, Field, FilePath, IPvAnyAddress, Json,
-                      PositiveInt)
+from pydantic import AnyUrl, EmailStr, Field, FilePath, IPvAnyAddress, Json, PositiveInt
 
 logger = logging.getLogger(__name__)
 

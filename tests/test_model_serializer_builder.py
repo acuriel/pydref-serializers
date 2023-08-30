@@ -1,19 +1,25 @@
 import pytest
+
 from pydref_serializers.builders import ModelSerializerBuilder
 from pydref_serializers.serializers import ModelSerializer
+
 
 class TestModelSerializerBuilderBuild:
     def test_build__should_create_model_serializer_when_empty_model_provided(
         self, empty_model
     ):
-        serializer_class = ModelSerializerBuilder(model=empty_model, fields_getter=lambda model, *args, **kwargs: []).build()
+        serializer_class = ModelSerializerBuilder(
+            model=empty_model, fields_getter=lambda model, *args, **kwargs: []
+        ).build()
         assert issubclass(serializer_class, ModelSerializer)
 
 
 class TestModelSerializerBuilderWithFields:
     def test_with_fields__raise_value_error_when_fields_already_set(self, empty_model):
         with pytest.raises(ValueError):
-            ModelSerializerBuilder(model=empty_model, fields={"field"}).with_fields("field")
+            ModelSerializerBuilder(model=empty_model, fields={"field"}).with_fields(
+                "field"
+            )
 
     def test_with_fields__should_set_fields_when_provided(self, empty_model):
         builder = ModelSerializerBuilder(model=empty_model).with_fields("field")
@@ -25,9 +31,13 @@ class TestModelSerializerBuilderWithFields:
 
 
 class TestModelSerializerBuilderWithoutFields:
-    def test_without_fields__raise_value_error_when_fields_already_set(self, empty_model):
+    def test_without_fields__raise_value_error_when_fields_already_set(
+        self, empty_model
+    ):
         with pytest.raises(ValueError):
-            ModelSerializerBuilder(model=empty_model, fields={"field"}).without_fields("field")
+            ModelSerializerBuilder(model=empty_model, fields={"field"}).without_fields(
+                "field"
+            )
 
     def test_without_fields__should_set_fields_when_provided(self, model_with_fields):
         builder = ModelSerializerBuilder(

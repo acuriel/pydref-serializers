@@ -11,7 +11,9 @@ class TestModelSerializerFromModel:
             "bool_field": True,
         }
 
-        TestModelSerializer = ModelSerializerBuilder.from_model(model_with_fields).build()
+        TestModelSerializer = ModelSerializerBuilder.from_model(
+            model_with_fields
+        ).build()
 
         model_serializer = TestModelSerializer.from_model(
             mocker.Mock(),

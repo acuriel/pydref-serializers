@@ -3,9 +3,7 @@ from typing import Any, Callable, Collection
 from django.db.models import Field as DjangoField
 from django.db.models import Model as DjangoModel
 
-_FieldGetter = Callable[
-    [type[DjangoModel], Collection[str] | None], dict[type, Any]
-]
+_FieldGetter = Callable[[type[DjangoModel], Collection[str] | None], dict[type, Any]]
 
 
 def default_get_fields(

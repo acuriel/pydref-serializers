@@ -1,5 +1,3 @@
-import pytest
-
 from pydref_serializers.getters import default_get_fields
 
 
