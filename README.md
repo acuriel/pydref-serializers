@@ -146,9 +146,9 @@ DJANGO_FIELD_MAP = {
 * If Django field has `choices` set, the Pydantic field will sue as a type an created Enum based on the specified `choices` set to the Django field. If the field is int based, the Enum will be an IntEnum. If the field is str based, the Enum will be StrEnum, otherwise it will be an Enum.
 
 ## TODO
+* Add support for lower Python versions (3.6+).
 * Add support for Django model relations.
 * Add support for Django model inheritance.
 * Add support for Django model fields with custom validators.
 * Add support to customize the serializer fields.
 * Add support to serialize model properties.
-* 
