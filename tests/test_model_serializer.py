@@ -1,4 +1,4 @@
-from pydref_serializers.serializers import ModelSerializerBuilder
+from pydref_serializers.builders import ModelSerializerBuilder
 
 
 class TestModelSerializerFromModel:
@@ -11,7 +11,7 @@ class TestModelSerializerFromModel:
             "bool_field": True,
         }
 
-        TestModelSerializer = ModelSerializerBuilder.from_model_class(model_with_fields)
+        TestModelSerializer = ModelSerializerBuilder.from_model(model_with_fields).build()
 
         model_serializer = TestModelSerializer.from_model(
             mocker.Mock(),
