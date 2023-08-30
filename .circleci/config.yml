@@ -81,6 +81,6 @@ workflows:
           context: pypi_pydref_serializer
           filters:
             branches:
-              only: master
+              ignore: /.*/
             tags:
               only: /^\d+\.\d+\.\d+$/ # Only deploy tags that look like X.Y.Z
