@@ -75,7 +75,11 @@ workflows:
       - test:
           requires:
             - lint
-  deploy:
-    jobs:
+      - hold:
+          type: approval
+          requires:
+            - test
       - deploy-pypi:
+          requires:
+            - hold
           context: pypi_pydref_serializer
