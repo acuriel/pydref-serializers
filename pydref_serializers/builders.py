@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from django.db.models import Model as DjangoModel
 from pydantic import create_model
-from typing_extensions import Self, Set
+from typing_extensions import Self, Set, Type
 
 from .getters import _FieldGetter, default_get_fields
 from .mappers.fields import _FieldMapper, default_field_mapper
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ModelSerializerBuilder:
-    model: type[DjangoModel]
+    model: Type[DjangoModel]
     fields: Set[str] | None = None
     fields_getter: _FieldGetter = default_get_fields
     field_mapper: _FieldMapper = default_field_mapper
@@ -32,10 +32,10 @@ class ModelSerializerBuilder:
         self.fields -= set(field_names)
         return self
 
-    def build(self, partial=False) -> type(ModelSerializer):
+    def build(self, partial=False) -> Type[ModelSerializer]:
         django_fields = self.fields_getter(self.model, self.fields)
         pydantic_fields = {
-            field.name: self.field_mapper(field, partial) for field in django_fields
+            field.name: self.field_mapper(field, partial=partial) for field in django_fields
         }
         serializer_config = ConfigSerializerDict(
             model=self.model,
