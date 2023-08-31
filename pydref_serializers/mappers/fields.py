@@ -44,7 +44,7 @@ DJANGO_FIELD_MAP = {
 }
 
 
-_FieldMapper = Callable[[DjangoField], tuple[type, Any]]
+_FieldMapper = Callable[[DjangoField, bool], tuple[type, Any]]
 
 
 def _get_base_type(_type: type) -> type:
@@ -73,7 +73,7 @@ def _get_enum_class(base_type: type) -> type[Enum]:
         return Enum
 
 
-def _get_pydantic_field_type(field: DjangoField) -> tuple[type, type]:
+def _get_pydantic_field_type(field: DjangoField, *, partial=False) -> tuple[type, type]:
     basic_type = DJANGO_FIELD_MAP.get(field.__class__.__name__)
     if not basic_type:
         logger.warning(f"Field {field} is not supported")
@@ -89,7 +89,7 @@ def _get_pydantic_field_type(field: DjangoField) -> tuple[type, type]:
         )
         pydantic_field_type = enum_obj
 
-    if field.null:
+    if field.null or partial:
         pydantic_field_type = pydantic_field_type | None
     return pydantic_field_type, base_type
 
@@ -99,8 +99,8 @@ def _get_mapped_validators(field: DjangoField) -> list[Callable]:
     pass
 
 
-def default_field_mapper(field: DjangoField) -> tuple[type, Field]:
-    pydantic_field_type, basic_type = _get_pydantic_field_type(field)
+def default_field_mapper(field: DjangoField, *, partial=False) -> tuple[type, Field]:
+    pydantic_field_type, basic_type = _get_pydantic_field_type(field, partial=partial)
     field_config = {}
     if issubclass(basic_type, str):
         field_config["min_length"] = 0 if field.blank else 1
