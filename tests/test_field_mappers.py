@@ -86,6 +86,11 @@ class TestGetPydanticField:
         pydantic_type = default_field_mapper(field)[0]
         assert pydantic_type == Any | None
 
+    def test__should_return_type_or_none_when_partial_is_true(self):
+        field = models.Field()
+        pydantic_type = default_field_mapper(field, partial=True)[0]
+        assert pydantic_type == Any | None
+
     def test__should_return_enum_when_field_has_choices(self):
         choices = (("a", "A"), ("b", "B"))
         field = models.CharField(choices=choices)
