@@ -65,7 +65,7 @@ jobs:
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  build_test_deploy: # This is the name of the workflow, feel free to change it to better match your workflow.
+  build_test: # This is the name of the workflow, feel free to change it to better match your workflow.
     # Inside the workflow, you define the jobs you want to run.
     jobs:
       - setup
@@ -75,12 +75,7 @@ workflows:
       - test:
           requires:
             - lint
+  deploy:
+    jobs:
       - deploy-pypi:
-          requires:
-            - test
           context: pypi_pydref_serializer
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^\d+\.\d+\.\d+$/ # Only deploy tags that look like X.Y.Z
