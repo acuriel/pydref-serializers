@@ -6,9 +6,13 @@ from annotated_types import MaxLen, MinLen
 from django.db import models
 from pydantic.fields import FieldInfo
 
-from pydref_serializers.serializers.field_mappers import (
-    DJANGO_FIELD_MAP, _get_base_type, _get_enum_class,
-    _get_pydantic_field_type, default_field_mapper)
+from pydref_serializers.mappers.fields import (
+    DJANGO_FIELD_MAP,
+    _get_base_type,
+    _get_enum_class,
+    _get_pydantic_field_type,
+    default_field_mapper,
+)
 
 
 class TestDefaultFieldMapper:
@@ -80,6 +84,11 @@ class TestGetPydanticField:
     def test__should_return_type_or_none_when_field_is_nullable(self):
         field = models.Field(null=True)
         pydantic_type = default_field_mapper(field)[0]
+        assert pydantic_type == Any | None
+
+    def test__should_return_type_or_none_when_partial_is_true(self):
+        field = models.Field()
+        pydantic_type = default_field_mapper(field, partial=True)[0]
         assert pydantic_type == Any | None
 
     def test__should_return_enum_when_field_has_choices(self):
