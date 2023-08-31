@@ -35,7 +35,8 @@ class ModelSerializerBuilder:
     def build(self, partial=False) -> Type[ModelSerializer]:
         django_fields = self.fields_getter(self.model, self.fields)
         pydantic_fields = {
-            field.name: self.field_mapper(field, partial=partial) for field in django_fields
+            field.name: self.field_mapper(field, partial=partial)
+            for field in django_fields
         }
         serializer_config = ConfigSerializerDict(
             model=self.model,
