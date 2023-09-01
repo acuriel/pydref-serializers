@@ -1,12 +1,13 @@
 import logging
 from dataclasses import dataclass
+from dataclasses import field as DataclassField
 
 from django.db.models import Model as DjangoModel
 from pydantic import create_model
 from typing_extensions import Self, Set, Type
 
 from .getters import _FieldGetter, default_get_fields
-from .mappers.fields import _FieldMapper, default_field_mapper
+from .mappers.fields import FieldMapper, _FieldMapper
 from .serializers import ConfigSerializerDict, ModelSerializer
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ class ModelSerializerBuilder:
     model: Type[DjangoModel]
     fields: Set[str] | None = None
     fields_getter: _FieldGetter = default_get_fields
-    field_mapper: _FieldMapper = default_field_mapper
+    field_mapper: _FieldMapper = DataclassField(default_factory=FieldMapper)
 
     def with_fields(self, *field_names) -> Self:
         if self.fields is not None:
@@ -57,6 +58,6 @@ class ModelSerializerBuilder:
         /,
         *,
         fields_getter: _FieldGetter = default_get_fields,
-        field_mapper: _FieldMapper = default_field_mapper,
+        field_mapper: _FieldMapper = FieldMapper(),
     ) -> Self:
         return cls(model, fields_getter=fields_getter, field_mapper=field_mapper)
