@@ -80,7 +80,7 @@ class ModelSerializerBuilder:
             }
             serializer_config = ConfigSerializerDict(
                 model=self.model,
-                include_fields=self.fields,
+                fields=self.fields,
             )
             new_serializer = create_model(
                 self.model.__name__ + "Serializer",
