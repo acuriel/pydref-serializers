@@ -1,5 +1,5 @@
-from enum import Enum, IntEnum, StrEnum
-from typing import Annotated, Any
+from enum import Enum
+from typing import Any
 
 import pytest
 from annotated_types import MaxLen, MinLen
@@ -8,62 +8,68 @@ from pydantic.fields import FieldInfo
 
 from pydref_serializers.mappers.fields import (
     DJANGO_FIELD_MAP,
-    _get_base_type,
-    _get_enum_class,
-    _get_pydantic_field_type,
-    default_field_mapper,
+    FieldDescriptor,
+    FieldMapper,
 )
 
 
-class TestDefaultFieldMapper:
-    def assert_field_annotation(self, field_info, annotation):
-        field_ann = next(
-            (ann for ann in field_info.metadata if isinstance(ann, type(annotation))),
-            None,
-        )
-        assert field_ann == annotation
+def assert_field_annotation(field_info: FieldInfo, annotation):
+    field_ann = next(
+        (ann for ann in field_info.metadata if isinstance(ann, type(annotation))),
+        None,
+    )
+    assert field_ann == annotation
 
-    def test__should_set_min_length_1_when_field_is_not_blank(
+
+class TestFieldMapperGetFieldDescriptor:
+    def test__should_return_field_descriptor_with_basic_fields(self):
+        field = models.CharField(null=True, choices=(("a", "A"), ("b", "B")))
+        fd = FieldMapper()._get_field_descriptor(field)
+        assert fd.name == field.name
+        assert fd.django_field_type == field.__class__
+        assert fd.allows_null == field.null
+        assert fd.choices == field.choices
+
+    def test__should_return_field_descriptor_with_is_required_false_when_field_is_nullable(
         self,
     ):
-        field = models.CharField(blank=False)
-        field_info: FieldInfo = default_field_mapper(field)[1]
-        self.assert_field_annotation(field_info, MinLen(1))
+        field = models.CharField(null=True)
+        fd = FieldMapper()._get_field_descriptor(field)
+        assert fd.is_required is False
 
-    def test__should_set_min_length_0_when_field_is_blank(self):
-        field = models.CharField(blank=True)
-        field_info: FieldInfo = default_field_mapper(field)[1]
-        self.assert_field_annotation(field_info, MinLen(0))
-
-    def test__should_set_max_length_when_field_has_max_length(
+    def test__should_return_field_descriptor_with_is_required_false_when_field_is_partial(
         self,
     ):
-        max_length = 100
-        field = models.CharField(max_length=max_length)
-        field_info: FieldInfo = default_field_mapper(field)[1]
-        self.assert_field_annotation(field_info, MaxLen(max_length))
+        field = models.CharField()
+        fd = FieldMapper()._get_field_descriptor(field, partial=True)
+        assert fd.is_required is False
 
-
-class TestGetFieldDefaultConfig:
-    def test__should_set_default_when_field_has_default_value(
+    def test__should_return_field_descriptor_with_is_required_false_when_field_has_default(
         self,
     ):
+        field = models.CharField(default="default")
+        fd = FieldMapper()._get_field_descriptor(field)
+        assert fd.is_required is False
+
+    def test__should_set_default_to_value_if_default_is_provided(self):
         default = "default"
         field = models.CharField(default=default)
-        field_info: FieldInfo = default_field_mapper(field)[1]
-        assert field_info.default == default
+        fd = FieldMapper()._get_field_descriptor(field)
+        assert fd.default == default
 
-    def test__should_set_default_when_field_has_default_callable(
-        self,
-    ):
+    def test__should_set_default_to_callable_if_default_is_callable(self):
         default = "default"
-        field = models.CharField(default=lambda: default)
-        field_info: FieldInfo = default_field_mapper(field)[1]
-        assert field_info.default_factory
-        assert field_info.default_factory() == default
+
+        def default_callable():
+            return default
+
+        field = models.CharField(default=default_callable)
+        fd = FieldMapper()._get_field_descriptor(field)
+        assert callable(fd.default)
+        assert fd.default() == default
 
 
-class TestGetPydanticField:
+class TestFieldMapperGetBaseType:
     @pytest.mark.parametrize(
         "django_field, expected_type",
         DJANGO_FIELD_MAP.items(),
@@ -72,61 +78,82 @@ class TestGetPydanticField:
     def test__should_return_expected_type_when_field_is_supported(
         self, django_field, expected_type
     ):
-        field = getattr(models, django_field)(max_length=100)
-        pydantic_type = _get_pydantic_field_type(field)[0]
+        field_type = getattr(models, django_field)
+        fd = FieldDescriptor(django_field_type=field_type, name="field")
+        pydantic_type = FieldMapper()._get_base_type(fd)
         assert pydantic_type == expected_type
 
     def test__should_return_any_when_field_is_not_supported(self):
-        field = models.Field()
-        pydantic_type = _get_pydantic_field_type(field)[0]
+        fd = FieldDescriptor(django_field_type=object, name="field")
+        pydantic_type = FieldMapper()._get_base_type(fd)
         assert pydantic_type == Any
 
-    def test__should_return_type_or_none_when_field_is_nullable(self):
-        field = models.Field(null=True)
-        pydantic_type = default_field_mapper(field)[0]
-        assert pydantic_type == Any | None
 
-    def test__should_return_type_or_none_when_partial_is_true(self):
-        field = models.Field()
-        pydantic_type = default_field_mapper(field, partial=True)[0]
-        assert pydantic_type == Any | None
+class TestFieldMapperGetPydanticField:
+    def test__should_return_type_or_none_when_fd_allows_null(self):
+        fd = FieldDescriptor(
+            name="field", django_field_type=models.CharField, allows_null=True
+        )
+        pydantic_type = FieldMapper()._get_pydantic_field(fd, str)[0]
+        assert pydantic_type == str | None
 
     def test__should_return_enum_when_field_has_choices(self):
         choices = (("a", "A"), ("b", "B"))
-        field = models.CharField(choices=choices)
-        field.name = "field"
-        pydantic_type = _get_pydantic_field_type(field)[0]
+        fd = FieldDescriptor(
+            django_field_type=models.CharField, name="field", choices=choices
+        )
+        pydantic_type = FieldMapper()._get_pydantic_field(fd, str)[0]
         assert issubclass(pydantic_type, Enum)
         assert pydantic_type.__name__ == "FieldEnum"
-        assert pydantic_type.__members__ == {
-            "A": "a",
-            "B": "b",
-        }
 
+    def test__should_set_default_none_when_fd_allows_null_and_not_default_provided(
+        self,
+    ):
+        fd = FieldDescriptor(
+            name="field", django_field_type=models.CharField, allows_null=True
+        )
+        field_info = FieldMapper()._get_pydantic_field(fd, str)[1]
+        assert field_info.default is None
 
-class TestGetEnumClass:
-    def test__should_return_int_enum_when_base_type_is_int_based(self):
-        base_type = type("BaseInt", (int,), {})
-        enum_class = _get_enum_class(base_type)
-        assert issubclass(enum_class, IntEnum)
+    def test__should_set_default_when_field_default_is_not_callable(self):
+        default = "default"
+        fd = FieldDescriptor(
+            django_field_type=models.CharField, name="field", default=default
+        )
+        field_info = FieldMapper()._get_pydantic_field(fd, str)[1]
+        assert field_info.default == default
 
-    def test__should_return_str_enum_when_base_type_is_str_based(self):
-        base_type = type("BaseStr", (str,), {})
-        enum_class = _get_enum_class(base_type)
-        assert issubclass(enum_class, StrEnum)
+    def test__should_set_default_when_field_default_is_callable(self):
+        default = "default"
 
-    def test__should_return_enum_when_base_type_is_not_int_or_str_based(self):
-        base_type = type("Base", (object,), {})
-        enum_class = _get_enum_class(base_type)
-        assert issubclass(enum_class, Enum)
+        def default_callable():
+            return default
 
+        fd = FieldDescriptor(
+            django_field_type=models.CharField, name="field", default=default_callable
+        )
+        field_info = FieldMapper()._get_pydantic_field(fd, str)[1]
+        assert field_info.default_factory
+        assert field_info.default_factory() == default
 
-class TestGetBaseType:
-    def test__should_return_same_type_if_not_annotated(self):
-        _type = type("Type", (object,), {})
-        assert _get_base_type(_type) == _type
+    def test__should_set_min_length_1_when_field_is_not_blank(self):
+        fd = FieldDescriptor(
+            django_field_type=models.CharField, name="field", allows_blank=False
+        )
+        field_info = FieldMapper()._get_pydantic_field(fd, str)[1]
+        assert_field_annotation(field_info, MinLen(1))
 
-    def test__should_return_first_arg_if_type_is_annotated(self):
-        _type = type("Type", (object,), {})
-        annotated_type = Annotated[_type, "annotation"]
-        assert _get_base_type(annotated_type) == _type
+    def test__should_set_min_length_0_when_field_is_blank(self):
+        fd = FieldDescriptor(
+            django_field_type=models.CharField, name="field", allows_blank=True
+        )
+        field_info = FieldMapper()._get_pydantic_field(fd, str)[1]
+        assert_field_annotation(field_info, MinLen(0))
+
+    def test__should_set_max_length_when_field_has_max_length(self):
+        max_length = 100
+        fd = FieldDescriptor(
+            django_field_type=models.CharField, name="field", max_length=max_length
+        )
+        field_info = FieldMapper()._get_pydantic_field(fd, str)[1]
+        assert_field_annotation(field_info, MaxLen(max_length))
