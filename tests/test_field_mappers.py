@@ -112,7 +112,7 @@ class TestFieldMapperGetPydanticField:
         fd = FieldDescriptor(
             name="field", django_field_type=models.CharField, allows_null=True
         )
-        field_info:FieldInfo = FieldMapper()._get_pydantic_field(fd, str)[1]
+        field_info: FieldInfo = FieldMapper()._get_pydantic_field(fd, str)[1]
         assert field_info.default is None
 
     def test__should_set_default_when_field_default_is_not_callable(self):

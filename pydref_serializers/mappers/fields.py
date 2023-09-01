@@ -62,6 +62,10 @@ DJANGO_FIELD_MAP = {
 ####################
 
 
+class NOT_PROVIDED:
+    pass
+
+
 @dataclass
 class FieldDescriptor:
     """
@@ -81,7 +85,7 @@ class FieldDescriptor:
     name: str
     django_field_type: type[DjangoField]
     is_required: bool = True
-    default: Any | None = None
+    default: Any | None = NOT_PROVIDED
     allows_null: bool = False
     choices: list[tuple[Any, str]] | None = None
     max_length: int | None = None
@@ -177,9 +181,12 @@ class FieldMapper:
         if fd.allows_null:
             pydantic_type = pydantic_type | None
             field_config["default"] = None
-        if fd.default:
-            config_key = "default_factory" if callable(fd.default) else "default"
-            field_config[config_key] = fd.default
+        if fd.default is not NOT_PROVIDED:
+            if callable(fd.default):
+                field_config.pop("default", None)
+                field_config["default_factory"] = fd.default
+            else:
+                field_config["default"] = fd.default
         if issubclass(base_type, str):
             field_config["min_length"] = 0 if fd.allows_blank else 1
             if fd.max_length:
