@@ -126,11 +126,18 @@ class FieldMapper:
         FieldDescriptor
             A FieldDescriptor object for the given Django field.
         """
+        default_field = NOT_PROVIDED
+        if field.null or partial:
+            default_field = None
+        if field.has_default():
+            default_field = (
+                field.get_default if callable(field.default) else field.default
+            )
         return FieldDescriptor(
             name=field.name,
             django_field_type=field.__class__,
             is_required=not (field.null or partial or field.has_default()),
-            default=field.get_default if callable(field.default) else field.default,
+            default=default_field,
             allows_null=field.null,
             allows_blank=field.blank,
             choices=field.choices,

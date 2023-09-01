@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydref-serializers"
-version = "0.2.3"
+version = "0.2.4"
 description = "A clean and simple serialization tool for Django models using Pydantic 2."
 authors = ["Aryan Curiel <aryan.curiel@gmail.com>"]
 license = 'MIT'
