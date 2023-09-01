@@ -13,6 +13,7 @@ class BaseSerializer(BaseModel):
     """
     Base serializer class that all other serializers should inherit from.
     """
+
     pass
 
 
@@ -27,6 +28,7 @@ class ConfigSerializerDict(TypedDict):
     fields : list[str] | None
         The list of fields to be included in the serialized output. If None, all fields will be included.
     """
+
     model: type[DjangoModel]
     fields: list[str] | None
 
@@ -46,17 +48,17 @@ class ModelSerializer(BaseSerializer):
 
     @classmethod
     def from_model(
-            cls: type[BaseModel], obj: DjangoModel, *, model_to_dict=django_model_to_dict
-        ) -> Self:
-            """
-            Convert a Django model instance to a Pydantic model instance.
+        cls: type[BaseModel], obj: DjangoModel, *, model_to_dict=django_model_to_dict
+    ) -> Self:
+        """
+        Convert a Django model instance to a Pydantic model instance.
 
-            Args:
-                obj (DjangoModel): The Django model instance to convert.
-                model_to_dict (Callable): A function that converts a Django model instance to a dictionary.
+        Args:
+            obj (DjangoModel): The Django model instance to convert.
+            model_to_dict (Callable): A function that converts a Django model instance to a dictionary.
 
-            Returns:
-                Self: An instance of the Pydantic model class with the values from the Django model instance.
-            """
-            model_dict = model_to_dict(obj)
-            return cls(**model_dict)
+        Returns:
+            Self: An instance of the Pydantic model class with the values from the Django model instance.
+        """
+        model_dict = model_to_dict(obj)
+        return cls(**model_dict)

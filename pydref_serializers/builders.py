@@ -24,6 +24,7 @@ class ModelSerializerBuilder:
         fields_getter (_FieldGetter): A function that returns the fields to include in the serializer.
         field_mapper (_FieldMapper): A mapper that maps Django fields to Pydantic fields.
     """
+
     model: Type[DjangoModel]
     fields: Set[str] | None = None
     fields_getter: _FieldGetter = default_get_fields
@@ -38,7 +39,7 @@ class ModelSerializerBuilder:
 
         Returns:
             Self: Returns the instance of the builder to allow for method chaining.
-        
+
         Raises:
             ValueError: If both include and exclude fields are specified.
         """
@@ -48,66 +49,66 @@ class ModelSerializerBuilder:
         return self
 
     def without_fields(self, *field_names) -> Self:
-            """
-            Returns a new instance of the builder with the specified fields excluded.
+        """
+        Returns a new instance of the builder with the specified fields excluded.
 
-            Args:
-                *field_names: The names of the fields to exclude.
+        Args:
+            *field_names: The names of the fields to exclude.
 
-            Returns:
-                A new instance of the builder with the specified fields excluded.
-            """
-            if self.fields is not None:
-                raise ValueError("Cannot include and exclude fields at the same time")
-            self.fields = {field.name for field in self.fields_getter(self.model)}
-            self.fields -= set(field_names)
-            return self
+        Returns:
+            A new instance of the builder with the specified fields excluded.
+        """
+        if self.fields is not None:
+            raise ValueError("Cannot include and exclude fields at the same time")
+        self.fields = {field.name for field in self.fields_getter(self.model)}
+        self.fields -= set(field_names)
+        return self
 
     def build(self, partial=False) -> Type[ModelSerializer]:
-            """
-            Builds a new ModelSerializer class based on the provided Django model and fields.
+        """
+        Builds a new ModelSerializer class based on the provided Django model and fields.
 
-            Args:
-                partial (bool, optional): Whether to create a partial serializer. Defaults to False.
+        Args:
+            partial (bool, optional): Whether to create a partial serializer. Defaults to False.
 
-            Returns:
-                Type[ModelSerializer]: The newly created ModelSerializer class.
-            """
-            django_fields = self.fields_getter(self.model, self.fields)
-            pydantic_fields = {
-                field.name: self.field_mapper(field, partial=partial)
-                for field in django_fields
-            }
-            serializer_config = ConfigSerializerDict(
-                model=self.model,
-                fields=self.fields,
-            )
-            new_serializer = create_model(
-                self.model.__name__ + "Serializer",
-                __base__=ModelSerializer,
-                config=serializer_config,
-                **pydantic_fields,
-            )
-            return new_serializer
+        Returns:
+            Type[ModelSerializer]: The newly created ModelSerializer class.
+        """
+        django_fields = self.fields_getter(self.model, self.fields)
+        pydantic_fields = {
+            field.name: self.field_mapper(field, partial=partial)
+            for field in django_fields
+        }
+        serializer_config = ConfigSerializerDict(
+            model=self.model,
+            fields=self.fields,
+        )
+        new_serializer = create_model(
+            self.model.__name__ + "Serializer",
+            __base__=ModelSerializer,
+            config=serializer_config,
+            **pydantic_fields,
+        )
+        return new_serializer
 
     @classmethod
     def from_model(
-            cls,
-            model: type[DjangoModel],
-            /,
-            *,
-            fields_getter: _FieldGetter = default_get_fields,
-            field_mapper: _FieldMapper = FieldMapper(),
-        ) -> Self:
-            """
-            Create a new instance of the serializer builder from a Django model.
+        cls,
+        model: type[DjangoModel],
+        /,
+        *,
+        fields_getter: _FieldGetter = default_get_fields,
+        field_mapper: _FieldMapper = FieldMapper(),
+    ) -> Self:
+        """
+        Create a new instance of the serializer builder from a Django model.
 
-            Args:
-                model (type[DjangoModel]): The Django model to create the serializer for.
-                fields_getter (_FieldGetter, optional): A function that returns the fields to include in the serializer. Defaults to default_get_fields.
-                field_mapper (_FieldMapper, optional): A mapper that maps Django fields to Pydantic fields. Defaults to FieldMapper().
+        Args:
+            model (type[DjangoModel]): The Django model to create the serializer for.
+            fields_getter (_FieldGetter, optional): A function that returns the fields to include in the serializer. Defaults to default_get_fields.
+            field_mapper (_FieldMapper, optional): A mapper that maps Django fields to Pydantic fields. Defaults to FieldMapper().
 
-            Returns:
-                Self: A new instance of the serializer builder.
-            """
-            return cls(model, fields_getter=fields_getter, field_mapper=field_mapper)
+        Returns:
+            Self: A new instance of the serializer builder.
+        """
+        return cls(model, fields_getter=fields_getter, field_mapper=field_mapper)

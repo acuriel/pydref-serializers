@@ -99,6 +99,7 @@ class FieldMapper:
     fields_map : Dict[str, Any]
         A dictionary that maps Django field types to Pydantic field types.
     """
+
     fields_map: Dict[str, Any] = DataclassField(
         default_factory=lambda: DJANGO_FIELD_MAP
     )
@@ -153,37 +154,37 @@ class FieldMapper:
         return pydantic_type
 
     def _get_pydantic_field(
-            self, fd: FieldDescriptor, base_type: type
-        ) -> Tuple[type, Field]:
-            """
-            Returns a tuple containing the Pydantic type and field configuration for a given field descriptor and base type.
+        self, fd: FieldDescriptor, base_type: type
+    ) -> Tuple[type, Field]:
+        """
+        Returns a tuple containing the Pydantic type and field configuration for a given field descriptor and base type.
 
-            Args:
-                fd (FieldDescriptor): The field descriptor for the field.
-                base_type (type): The base type of the field.
+        Args:
+            fd (FieldDescriptor): The field descriptor for the field.
+            base_type (type): The base type of the field.
 
-            Returns:
-                Tuple[type, Field]: A tuple containing the Pydantic type and field configuration for the field.
-            """
-            pydantic_type = base_type
-            if fd.choices:
-                pydantic_type = Enum(
-                    f"{fd.name.title()}Enum",
-                    [(choice[1], choice[0]) for choice in fd.choices],
-                )
+        Returns:
+            Tuple[type, Field]: A tuple containing the Pydantic type and field configuration for the field.
+        """
+        pydantic_type = base_type
+        if fd.choices:
+            pydantic_type = Enum(
+                f"{fd.name.title()}Enum",
+                [(choice[1], choice[0]) for choice in fd.choices],
+            )
 
-            field_config = {}
-            if fd.allows_null:
-                pydantic_type = pydantic_type | None
-                field_config["default"] = None
-            if fd.default:
-                config_key = "default_factory" if callable(fd.default) else "default"
-                field_config[config_key] = fd.default
-            if issubclass(base_type, str):
-                field_config["min_length"] = 0 if fd.allows_blank else 1
-                if fd.max_length:
-                    field_config["max_length"] = fd.max_length
-            return pydantic_type, Field(**field_config)
+        field_config = {}
+        if fd.allows_null:
+            pydantic_type = pydantic_type | None
+            field_config["default"] = None
+        if fd.default:
+            config_key = "default_factory" if callable(fd.default) else "default"
+            field_config[config_key] = fd.default
+        if issubclass(base_type, str):
+            field_config["min_length"] = 0 if fd.allows_blank else 1
+            if fd.max_length:
+                field_config["max_length"] = fd.max_length
+        return pydantic_type, Field(**field_config)
 
     def __call__(self, field: DjangoField, *, partial=False) -> Tuple[type, Field]:
         """

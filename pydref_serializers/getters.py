@@ -3,7 +3,6 @@ from typing import Any, Callable, Collection
 from django.db.models import Field as DjangoField
 from django.db.models import Model as DjangoModel
 
-
 ####################
 #      TYPES       #
 ####################
@@ -14,6 +13,7 @@ _FieldGetter = Callable[[type[DjangoModel], Collection[str] | None], dict[type, 
 ####################
 #    FUNCTIONS     #
 ####################
+
 
 def default_get_fields(
     model: type[DjangoModel],
