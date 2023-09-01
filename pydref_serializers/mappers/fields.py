@@ -1,8 +1,10 @@
 import logging
+from dataclasses import dataclass
+from dataclasses import field as DataclassField
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-from enum import Enum, IntEnum, StrEnum
-from typing import Annotated, Any, Callable, get_args, get_origin
+from enum import Enum
+from typing import Any, Callable, Dict, Tuple
 from uuid import UUID
 
 from django.db.models import Field as DjangoField
@@ -10,6 +12,17 @@ from pydantic import AnyUrl, EmailStr, Field, FilePath, IPvAnyAddress, Json, Pos
 
 logger = logging.getLogger(__name__)
 
+
+####################
+#      TYPES       #
+####################
+
+_FieldMapper = Callable[[DjangoField, bool], Tuple[type, Any]]
+
+
+####################
+#    CONSTANTS     #
+####################
 
 DJANGO_FIELD_MAP = {
     # Numerical related fields
@@ -44,69 +57,152 @@ DJANGO_FIELD_MAP = {
 }
 
 
-_FieldMapper = Callable[[DjangoField, bool], tuple[type, Any]]
+####################
+#      CLASSES     #
+####################
 
 
-def _get_base_type(_type: type) -> type:
-    origin = get_origin(_type)
-    if origin is Annotated:
-        return get_args(_type)[0]
-    return _type
+@dataclass
+class FieldDescriptor:
+    """
+    A descriptor for a Django model field.
+
+    Attributes:
+        name (str): The name of the field.
+        django_field_type (type[DjangoField]): The type of the Django field.
+        is_required (bool, optional): Whether the field is required. Defaults to True.
+        default (Any | None, optional): The default value for the field. Defaults to None.
+        allows_null (bool, optional): Whether the field allows null values. Defaults to False.
+        choices (list[tuple[Any, str]] | None, optional): The choices for the field. Defaults to None.
+        max_length (int | None, optional): The maximum length of the field. Defaults to None.
+        min_length (int | None, optional): The minimum length of the field. Defaults to None.
+    """
+
+    name: str
+    django_field_type: type[DjangoField]
+    is_required: bool = True
+    default: Any | None = None
+    allows_null: bool = False
+    choices: list[tuple[Any, str]] | None = None
+    max_length: int | None = None
+    allows_blank: bool = False
+    validators: list[Callable] | None = None
 
 
-def _get_field_default_config(field) -> dict:
-    default_config = {}
-    if field.has_default():
-        if callable(field.default):
-            default_config["default_factory"] = field.get_default
-        else:
-            default_config["default"] = field.default
-    return default_config
+@dataclass
+class FieldMapper:
+    """
+    Maps Django fields to Pydantic fields.
 
+    Attributes:
+    -----------
+    fields_map : Dict[str, Any]
+        A dictionary that maps Django field types to Pydantic field types.
 
-def _get_enum_class(base_type: type) -> type[Enum]:
-    if issubclass(base_type, int):
-        return IntEnum
-    elif issubclass(base_type, str):
-        return StrEnum
-    else:
-        return Enum
+    Methods:
+    --------
+    _get_field_descriptor(field: DjangoField, *, partial=False) -> FieldDescriptor:
+        Returns a FieldDescriptor object for the given Django field.
 
+    _get_base_types(fd: FieldDescriptor) -> type:
+        Returns the Pydantic field type for the given FieldDescriptor.
 
-def _get_pydantic_field_type(field: DjangoField, *, partial=False) -> tuple[type, type]:
-    basic_type = DJANGO_FIELD_MAP.get(field.__class__.__name__)
-    if not basic_type:
-        logger.warning(f"Field {field} is not supported")
-        basic_type = Any
+    __call__(field: DjangoField, *, partial=False):
+        Maps the given Django field to a Pydantic field.
+    """
 
-    pydantic_field_type = basic_type
-    base_type = _get_base_type(basic_type)
-    if field.choices:
-        enum_class = _get_enum_class(base_type)
-        enum_name = f"{field.name.title()}Enum"
-        enum_obj = enum_class(
-            enum_name, [(choice[1], choice[0]) for choice in field.choices]
+    fields_map: Dict[str, Any] = DataclassField(
+        default_factory=lambda: DJANGO_FIELD_MAP
+    )
+
+    def _get_field_descriptor(
+        self, field: DjangoField, *, partial=False
+    ) -> FieldDescriptor:
+        """
+        Returns a FieldDescriptor object for the given Django field.
+
+        Parameters:
+        -----------
+        field : DjangoField
+            The Django field to get the descriptor for.
+        partial : bool, optional
+            Whether the field is partial or not. Default is False.
+
+        Returns:
+        --------
+        FieldDescriptor
+            A FieldDescriptor object for the given Django field.
+        """
+        return FieldDescriptor(
+            name=field.name,
+            django_field_type=field.__class__,
+            is_required=not (field.null or partial or field.has_default()),
+            default=field.get_default if callable(field.default) else field.default,
+            allows_null=field.null,
+            allows_blank=field.blank,
+            choices=field.choices,
+            max_length=field.max_length,
         )
-        pydantic_field_type = enum_obj
 
-    if field.null or partial:
-        pydantic_field_type = pydantic_field_type | None
-    return pydantic_field_type, base_type
+    def _get_base_type(self, fd: FieldDescriptor) -> type:
+        """
+        Returns the Pydantic field type for the given FieldDescriptor.
 
+        Parameters:
+        -----------
+        fd : FieldDescriptor
+            The FieldDescriptor object to get the Pydantic field type for.
 
-def _get_mapped_validators(field: DjangoField) -> list[Callable]:
-    # TODO: Implement this
-    pass
+        Returns:
+        --------
+        type
+            The Pydantic field type for the given FieldDescriptor.
+        """
+        pydantic_type = self.fields_map.get(fd.django_field_type.__name__)
+        if not pydantic_type:
+            logger.warning(f"Field {fd.django_field_type} is not supported")
+            pydantic_type = Any
+        return pydantic_type
 
+    def _get_pydantic_field(
+        self, fd: FieldDescriptor, base_type: type
+    ) -> Tuple[type, Field]:
+        pydantic_type = base_type
+        if fd.choices:
+            pydantic_type = Enum(
+                f"{fd.name.title()}Enum",
+                [(choice[1], choice[0]) for choice in fd.choices],
+            )
 
-def default_field_mapper(field: DjangoField, *, partial=False) -> tuple[type, Field]:
-    pydantic_field_type, basic_type = _get_pydantic_field_type(field, partial=partial)
-    field_config = {}
-    if issubclass(basic_type, str):
-        field_config["min_length"] = 0 if field.blank else 1
-        if field.max_length:
-            field_config["max_length"] = field.max_length
-    field_config |= _get_field_default_config(field)
-    _get_mapped_validators(field)
+        field_config = {}
+        if fd.allows_null:
+            pydantic_type = pydantic_type | None
+            field_config["default"] = None
+        if fd.default:
+            config_key = "default_factory" if callable(fd.default) else "default"
+            field_config[config_key] = fd.default
+        if issubclass(base_type, str):
+            field_config["min_length"] = 0 if fd.allows_blank else 1
+            if fd.max_length:
+                field_config["max_length"] = fd.max_length
+        return pydantic_type, Field(**field_config)
 
-    return pydantic_field_type, Field(**field_config)
+    def __call__(self, field: DjangoField, *, partial=False) -> Tuple[type, Field]:
+        """
+        Maps the given Django field to a Pydantic field.
+
+        Parameters:
+        -----------
+        field : DjangoField
+            The Django field to map to a Pydantic field.
+        partial : bool, optional
+            Whether the field is partial or not. Default is False.
+
+        Returns:
+        --------
+        Tuple[type, Field]
+            A tuple containing the Pydantic field type and the Pydantic Field object.
+        """
+        fd = self._get_field_descriptor(field, partial=partial)
+        pydantic_type = self._get_base_type(fd)
+        return self._get_pydantic_field(fd, pydantic_type)
